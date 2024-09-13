@@ -1,0 +1,16 @@
+{
+  "name": "com.envjoy.gltf",
+  "displayName": "Envjoy GLTF",
+  "version": "0.1.0",
+  "description": "GLTF plug-in for importing and exporting Envjoy scenes.",
+  "unity": "2022.3",
+  "author": {
+    "name": "Jesús Moreno Puertas",
+    "email": "jesus@morenopuertas.es",
+    "url": "https://www.envjoy.com/"
+  },
+  "dependencies": {
+    "org.khronos.unitygltf": "2.10.0",
+    "com.cysharp.unitask": "2.5.5"
+  }
+}
