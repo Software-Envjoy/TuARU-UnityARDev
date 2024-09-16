@@ -6,31 +6,36 @@ using UnityEngine;
 namespace Envjoy.GLTF
 {
     /// <summary>
-    /// Defines the <see cref="Waypoint" />
+    /// Defines the <see cref="EVJ_node" />
     /// </summary>
-    [Serializable]
-    public class Waypoint
+    [SerializeField]
+    public class EVJ_node
     {
         #region Properties
 
         /// <summary>
-        /// Gets or sets the AnimationIndice
+        /// Gets or sets the NodeIndex
         /// </summary>
-        public int AnimationIndice { get; set; } = -1;
+        public int NodeIndex { get; set; } = -1;
 
         /// <summary>
-        /// Gets or sets the Position
+        /// Gets or sets the AnimationIndices
         /// </summary>
-        public Vector3 Position { get; set; }
+        public int[] AnimationIndices { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Path
+        /// </summary>
+        public EVJ_path Path { get; set; }
 
         #endregion
     }
 
     /// <summary>
-    /// Defines the <see cref="Path" />
+    /// Defines the <see cref="EVJ_path" />
     /// </summary>
-    [Serializable]
-    public class Path
+    [SerializeField]
+    public class EVJ_path
     {
         #region Properties
 
@@ -50,14 +55,35 @@ namespace Envjoy.GLTF
         public float Duration { get; set; }
 
         /// <summary>
-        /// Gets or sets the IdleAnimationIndice
+        /// Gets or sets the IdleAnimationIndex
         /// </summary>
-        public int IdleAnimationIndice { get; set; } = -1;
+        public int IdleAnimationIndex { get; set; }
 
         /// <summary>
         /// Gets or sets the Waypoints
         /// </summary>
-        public Waypoint[] Waypoints { get; set; }
+        public EVJ_waypoint[] Waypoints { get; set; }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Defines the <see cref="EVJ_waypoint" />
+    /// </summary>
+    [SerializeField]
+    public class EVJ_waypoint
+    {
+        #region Properties
+
+        /// <summary>
+        /// Gets or sets the Position
+        /// </summary>
+        public Vector3 Position { get; set; }
+
+        /// <summary>
+        /// Gets or sets the AnimationIndex
+        /// </summary>
+        public int AnimationIndex { get; set; }
 
         #endregion
     }
@@ -75,13 +101,22 @@ namespace Envjoy.GLTF
 
         #endregion
 
-        #region Fields
+        #region Properties
 
-        public int SceneIndex = -1;
-        public int ImageTarget = -1;
-        public int[] RootNodes;
-        public int[][] AnimationIndices;
-        public Path[] Paths;
+        /// <summary>
+        /// Gets or sets the SceneIndex
+        /// </summary>
+        public int SceneIndex { get; set; } = -1;
+
+        /// <summary>
+        /// Gets or sets the ImageTarget
+        /// </summary>
+        public int ImageTarget { get; set; } = -1;
+
+        /// <summary>
+        /// Gets or sets the RootNodes
+        /// </summary>
+        public EVJ_node[] RootNodes { get; set; }
 
         #endregion
 
@@ -89,10 +124,8 @@ namespace Envjoy.GLTF
         public IExtension Clone(GLTFRoot root) => new EVJ_scene
         {
             SceneIndex = SceneIndex,
-            RootNodes = RootNodes,
             ImageTarget = ImageTarget,
-            AnimationIndices = AnimationIndices,
-            Paths = Paths
+            RootNodes = RootNodes,
         };
 
         /// <inheritdoc/>
@@ -124,9 +157,15 @@ namespace Envjoy.GLTF
         /// <param name="extensionToken">The extensionToken<see cref="JProperty"/></param>
         /// <returns>The <see cref="IExtension"/></returns>
         public override IExtension Deserialize(GLTFRoot root, JProperty extensionToken)
-            => extensionToken != null
-            ? extensionToken.ToObject<EVJ_scene>()
-            : null;
+        {
+            if (extensionToken != null)
+                return null;
+
+            JToken evjSceneToken = extensionToken.Value[EXTENSION_NAME];
+            return evjSceneToken != null
+                ? evjSceneToken.ToObject<EVJ_scene>()
+                : null;
+        }
 
         /// <summary>
         /// The Register
