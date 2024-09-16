@@ -8,7 +8,6 @@
 
 using GLTF.Schema;
 using System;
-using System.Linq;
 using UnityGLTF;
 using UnityGLTF.Plugins;
 
@@ -25,6 +24,11 @@ namespace Envjoy.GLTF
         /// Gets the display name of the plugin
         /// </summary>
         public override string DisplayName => "EVJ_scene";
+
+        /// <summary>
+        /// Gets the description of the plugin
+        /// </summary>
+        public override string Description => "Export Envjoy scene data, if available";
 
         #endregion
 
@@ -57,18 +61,42 @@ namespace Envjoy.GLTF
                 var rootNodes = root.GetComponentsInChildren<ModelNode>();
 
                 _extension.SceneIndex = gltfRoot.Scene.Id;
-                _extension.RootNodes = new int[rootNodes.Length];
-                _extension.AnimationIndices = new int[rootNodes.Length][];
+                _extension.RootNodes = new EVJ_node[rootNodes.Length];
                 for (int i = 0; i < rootNodes.Length; i++)
                 {
-                    var node = rootNodes[i];
-                    _extension.RootNodes[i] = exporter.GetTransformIndex(node.transform);
+                    var modelNode = rootNodes[i];
+                    var node = new EVJ_node
+                    {
+                        NodeIndex = exporter.GetTransformIndex(modelNode.transform),
+                    };
+
 #if ANIMATION_SUPPORTED
-                    exporter.ExportAnimationClips(node.transform, node.Clips);
-                    _extension.AnimationIndices[i] = node.Clips.Select(clip => exporter.GetAnimationId(clip, node.transform)).ToArray();
-#else
-                    _extension.AnimationIndices[i] = Array.Empty<int>();
+                    node.Path = new EVJ_path
+                    {
+                        ClosePath = modelNode.Path.ClosePath,
+                        ConvertCurves = modelNode.Path.ConvertCurves,
+                        Duration = modelNode.Path.Duration,
+                    };
+
+                    exporter.ExportAnimationClips(modelNode.transform, modelNode.Clips);
+
+                    node.AnimationIndices = new int[modelNode.Clips.Length];
+                    for (int j = 0; j < modelNode.Clips.Length; j++)
+                        node.AnimationIndices[j] = exporter.GetAnimationId(modelNode.Clips[j], modelNode.transform);
+
+                    node.Path.IdleAnimationIndex = exporter.GetAnimationId(modelNode.Path.IdleAnimation, modelNode.transform);
+                    node.Path.Waypoints = new EVJ_waypoint[modelNode.Path.Waypoints.Length];
+                    for (int j = 0; j < modelNode.Path.Waypoints.Length; j++)
+                    {
+                        var waypoint = modelNode.Path.Waypoints[j];
+                        node.Path.Waypoints[j] = new EVJ_waypoint
+                        {
+                            Position = waypoint.Position,
+                            AnimationIndex = exporter.GetAnimationId(waypoint.Animation, modelNode.transform)
+                        };
+                    }
 #endif
+                    _extension.RootNodes[i] = node;
                 }
 
                 exporter.DeclareExtensionUsage(EVJ_scene.EXTENSION_NAME, true);
