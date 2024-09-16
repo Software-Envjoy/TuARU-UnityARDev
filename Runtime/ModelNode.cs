@@ -31,34 +31,31 @@ namespace Envjoy.GLTF
         [ContextMenu("Play")]
         public void Play()
         {
+            var playableOutput = AnimationPlayableOutput.Create(_playableGraph, "Animation", GetComponent<Animator>());
             var mixerPlayable = AnimationMixerPlayable.Create(_playableGraph, 2);
+            playableOutput.SetSourcePlayable(mixerPlayable);
 
-            var hasIdle = Path.IdleAnimationIndice != -1;
-            if (hasIdle)
-            {
-                var idleClip = Clips[Path.IdleAnimationIndice];
-                var idlePlayable = AnimationClipPlayable.Create(_playableGraph, idleClip);
-                _playableGraph.Connect(idlePlayable, 0, mixerPlayable, 0);
+            var idlePlayable = AnimationClipPlayable.Create(_playableGraph, Path.IdleAnimation);
+            _playableGraph.Connect(idlePlayable, 0, mixerPlayable, 0);
 
-                mixerPlayable.SetInputWeight(0, 1);
-            }
+            mixerPlayable.SetInputWeight(0, 1);
 
-            var hasWaypoints = Path.Waypoints.Length != 0;
+            var hasWaypoints = Path.Waypoints.Length > 1;
             if (hasWaypoints)
             {
-                var waypointClip = Clips[Path.Waypoints[0].AnimationIndice];
+                var waypointClip = Path.Waypoints[0].Animation;
                 var waypointPlayable = AnimationClipPlayable.Create(_playableGraph, waypointClip);
                 _playableGraph.Connect(waypointPlayable, 0, mixerPlayable, 1);
 
                 void OnWaypointChange(int value)
                 {
-                    var idx = Path.Waypoints[value].AnimationIndice;
-                    if (idx == -1)
+                    var clip = Path.Waypoints[value].Animation;
+                    if (clip == null)
                         return;
 
                     mixerPlayable.SetInputWeight(0, 0.5f);
                     mixerPlayable.SetInputWeight(1, 0.5f);
-                    waypointPlayable.SetAnimatedProperties(Clips[idx]);
+                    waypointPlayable.SetAnimatedProperties(clip);
                     waypointPlayable.SetTime(0);
                 }
 #if DOTWEEN
@@ -83,12 +80,15 @@ namespace Envjoy.GLTF
                 _playableGraph.Stop();
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// The Awake
+        /// </summary>
         private void Awake()
         {
             _playableGraph = PlayableGraph.Create();
             _playableGraph.SetTimeUpdateMode(DirectorUpdateMode.GameTime);
 
+            Clips ??= new AnimationClip[0];
             Path ??= new Path
             {
                 Waypoints = new Waypoint[1]
@@ -101,7 +101,9 @@ namespace Envjoy.GLTF
             };
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// The OnDestroy
+        /// </summary>
         private void OnDestroy()
         {
 #if DOTWEEN
