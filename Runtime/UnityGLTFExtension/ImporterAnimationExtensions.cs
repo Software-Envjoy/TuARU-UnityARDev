@@ -9,21 +9,35 @@ namespace UnityGLTF
     {
 #if UNITY_ANIMATION || !UNITY_2019_1_OR_NEWER
 
-        /// <summary>
-        /// The ConstructClip2
-        /// </summary>
-        /// <param name="root">The root<see cref="Transform"/></param>
-        /// <param name="animationId">The animationId<see cref="int"/></param>
-        /// <returns>The <see cref="AnimationClip"/></returns>
-        public AnimationClip ConstructClip2(Transform root, int animationId)
-            => ConstructClip(root, animationId, default).GetAwaiter().GetResult();
+        #region Fields
+
+        private int _currentAnimationIndex;
+
+        #endregion
 
         /// <summary>
-        /// The SetCreatedAnimationClips
+        /// The InitializeCreatedAnimationClips
         /// </summary>
-        /// <param name="clips">The clips<see cref="AnimationClip[]"/></param>
-        public void SetCreatedAnimationClips(AnimationClip[] clips)
-            => CreatedAnimationClips = clips;
-#endif
+        public void InitializeCreatedAnimationClips()
+        {
+            CreatedAnimationClips = new AnimationClip[Root?.Animations?.Count ?? 0];
+            _currentAnimationIndex = 0;
+        }
+
+        /// <summary>
+        /// The TrySetCreatedAnimationClip
+        /// </summary>
+        /// <param name="clip">The clip<see cref="AnimationClip"/></param>
+        /// <returns>The <see cref="bool"/></returns>
+        public bool TrySetCreatedAnimationClip(AnimationClip clip)
+        {
+            var index = _currentAnimationIndex++;
+            if (index < 0 || index >= CreatedAnimationClips.Length)
+                return false;
+
+            CreatedAnimationClips[index] = clip;
+            return true;
+        }
     }
+#endif
 }
