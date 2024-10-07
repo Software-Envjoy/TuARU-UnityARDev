@@ -1,14 +1,61 @@
 ﻿using GLTF.Schema;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using UnityEngine;
 
 namespace Envjoy.GLTF
 {
+    #region Enums
+
+    /// <summary>
+    /// Defines the Orientation of the target
+    /// </summary>
+    public enum Orientation
+    {
+        /// <summary>
+        /// Defines the Vertical
+        /// </summary>
+        Vertical,
+
+        /// <summary>
+        /// Defines the Horizontal
+        /// </summary>
+        Horizontal
+    }
+
+    #endregion
+
+    /// <summary>
+    /// Defines the <see cref="EVJ_target" />
+    /// </summary>
+    [Serializable]
+    public class EVJ_target
+    {
+        #region Properties
+
+        /// <summary>
+        /// Gets or sets the Width in Unity units
+        /// </summary>
+        public float Width { get; set; } = 1.0f;
+
+        /// <summary>
+        /// Gets or sets the Target
+        /// </summary>
+        public int Target { get; set; } = -1;
+
+        /// <summary>
+        /// Gets or sets the Orientation
+        /// </summary>
+        public Orientation Orientation { get; set; }
+
+        #endregion
+    }
+
     /// <summary>
     /// Defines the <see cref="EVJ_node" />
     /// </summary>
-    [SerializeField]
+    [Serializable]
     public class EVJ_node
     {
         #region Properties
@@ -34,7 +81,7 @@ namespace Envjoy.GLTF
     /// <summary>
     /// Defines the <see cref="EVJ_path" />
     /// </summary>
-    [SerializeField]
+    [Serializable]
     public class EVJ_path
     {
         #region Properties
@@ -70,7 +117,7 @@ namespace Envjoy.GLTF
     /// <summary>
     /// Defines the <see cref="EVJ_waypoint" />
     /// </summary>
-    [SerializeField]
+    [Serializable]
     public class EVJ_waypoint
     {
         #region Properties
@@ -78,6 +125,7 @@ namespace Envjoy.GLTF
         /// <summary>
         /// Gets or sets the Position
         /// </summary>
+        [JsonConverter(typeof(Vector3Converter))]
         public Vector3 Position { get; set; }
 
         /// <summary>
@@ -111,7 +159,7 @@ namespace Envjoy.GLTF
         /// <summary>
         /// Gets or sets the ImageTarget
         /// </summary>
-        public int ImageTarget { get; set; } = -1;
+        public EVJ_target ImageTarget { get; set; }
 
         /// <summary>
         /// Gets or sets the RootNodes
@@ -158,12 +206,12 @@ namespace Envjoy.GLTF
         /// <returns>The <see cref="IExtension"/></returns>
         public override IExtension Deserialize(GLTFRoot root, JProperty extensionToken)
         {
-            if (extensionToken != null)
+            if (extensionToken == null)
                 return null;
 
-            JToken evjSceneToken = extensionToken.Value[EXTENSION_NAME];
-            return evjSceneToken != null
-                ? evjSceneToken.ToObject<EVJ_scene>()
+            var value = extensionToken.Value;
+            return value != null
+                ? value.ToObject<EVJ_scene>()
                 : null;
         }
 
@@ -173,7 +221,7 @@ namespace Envjoy.GLTF
 #if UNITY_EDITOR
         [UnityEditor.InitializeOnLoadMethod]
 #else
-        [RuntimeInitializeOnLoadMethod]
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
 #endif
         private static void Register()
         {

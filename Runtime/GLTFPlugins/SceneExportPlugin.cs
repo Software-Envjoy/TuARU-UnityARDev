@@ -1,6 +1,4 @@
-#if UNITY_EDITOR
 #define ANIMATION_EXPORT_SUPPORTED
-#endif
 
 #if ANIMATION_EXPORT_SUPPORTED && (UNITY_ANIMATION || !UNITY_2019_1_OR_NEWER)
 #define ANIMATION_SUPPORTED
@@ -60,6 +58,7 @@ namespace Envjoy.GLTF
 
                 var rootNodes = root.GetComponentsInChildren<ModelNode>();
 
+                _extension ??= new EVJ_scene();
                 _extension.SceneIndex = gltfRoot.Scene.Id;
                 _extension.RootNodes = new EVJ_node[rootNodes.Length];
                 for (int i = 0; i < rootNodes.Length; i++)
@@ -68,16 +67,15 @@ namespace Envjoy.GLTF
                     var node = new EVJ_node
                     {
                         NodeIndex = exporter.GetTransformIndex(modelNode.transform),
+                        Path = new EVJ_path
+                        {
+                            ClosePath = modelNode.Path.ClosePath,
+                            ConvertCurves = modelNode.Path.ConvertCurves,
+                            Duration = modelNode.Path.Duration,
+                        }
                     };
 
 #if ANIMATION_SUPPORTED
-                    node.Path = new EVJ_path
-                    {
-                        ClosePath = modelNode.Path.ClosePath,
-                        ConvertCurves = modelNode.Path.ConvertCurves,
-                        Duration = modelNode.Path.Duration,
-                    };
-
                     exporter.ExportAnimationClips(modelNode.transform, modelNode.Clips);
 
                     node.AnimationIndices = new int[modelNode.Clips.Length];
@@ -85,6 +83,11 @@ namespace Envjoy.GLTF
                         node.AnimationIndices[j] = exporter.GetAnimationId(modelNode.Clips[j], modelNode.transform);
 
                     node.Path.IdleAnimationIndex = exporter.GetAnimationId(modelNode.Path.IdleAnimation, modelNode.transform);
+#else
+                    node.AnimationIndices = Array.Empty<int>();
+                    node.Path.IdleAnimationIndex = -1;
+#endif
+
                     node.Path.Waypoints = new EVJ_waypoint[modelNode.Path.Waypoints.Length];
                     for (int j = 0; j < modelNode.Path.Waypoints.Length; j++)
                     {
@@ -92,38 +95,31 @@ namespace Envjoy.GLTF
                         node.Path.Waypoints[j] = new EVJ_waypoint
                         {
                             Position = waypoint.Position,
+#if ANIMATION_SUPPORTED
                             AnimationIndex = exporter.GetAnimationId(waypoint.Animation, modelNode.transform)
+#else
+                            AnimationIndex = -1
+#endif
                         };
                     }
-#endif
+
                     _extension.RootNodes[i] = node;
+                }
+
+                if (sceneNode.ImageTarget != null)
+                {
+                    var textureId = exporter.ExportTexture(sceneNode.ImageTarget, default);
+                    _extension.ImageTarget = new EVJ_target
+                    {
+                        Width = sceneNode.Width,
+                        Target = textureId.Id,
+                        Orientation = sceneNode.Orientation
+                    };
                 }
 
                 exporter.DeclareExtensionUsage(EVJ_scene.EXTENSION_NAME, true);
                 gltfRoot.AddExtension(EVJ_scene.EXTENSION_NAME, _extension);
                 gltfRoot.Asset.Copyright = $"Envjoy {DateTime.Now.Year}";
-            }
-
-            /// <inheritdoc/>
-            public override void BeforeSceneExport(GLTFSceneExporter exporter, GLTFRoot gltfRoot)
-            {
-                if (exporter.RootTransforms == null)
-                    return;
-
-                if (exporter.RootTransforms.Count == 0)
-                    return;
-
-                var root = exporter.RootTransforms[0].parent;
-                if (root == null || !root.TryGetComponent(out SceneNode sceneNode))
-                    return;
-
-                _extension = new EVJ_scene();
-
-                if (sceneNode.ImageTarget != null)
-                {
-                    var textureId = exporter.ExportTexture(sceneNode.ImageTarget, default);
-                    _extension.ImageTarget = textureId.Id;
-                }
             }
         }
     }
