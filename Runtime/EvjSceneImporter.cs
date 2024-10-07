@@ -4,18 +4,20 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using UnityEngine;
 using UnityGLTF;
 
 namespace Envjoy.GLTF
 {
     /// <summary>
-    /// Defines the <see cref="EvjSceneImporter" />
+    /// Scene importer for Envjoy GLTF
     /// </summary>
     public class EvjSceneImporter : GLTFSceneImporter
     {
         #region Fields
 
         private readonly EVJ_scene _extension;
+        private int _currentAnimationIndex;
 
         #endregion
 
@@ -30,13 +32,18 @@ namespace Envjoy.GLTF
                                 ImportOptions options)
             : base(rootNode, gltfStream, options)
         {
+            LoadUnreferencedImagesAndMaterials = true;
+            IsMultithreaded = true;
             options.AnimationMethod = AnimationMethod.None;
 
             if (rootNode.Extensions != null && rootNode.Extensions.TryGetValue(EVJ_scene.EXTENSION_NAME, out var value))
             {
                 _extension = value as EVJ_scene;
                 if (rootNode.Animations != null)
-                    InitializeCreatedAnimationClips();
+                {
+                    _currentAnimationIndex = 0;
+                    CreatedAnimationClips = new AnimationClip[rootNode.Animations?.Count ?? 0];
+                }
             }
         }
 
@@ -58,6 +65,7 @@ namespace Envjoy.GLTF
                 return;
 
             var nodeObject = NodeCache[nodeIndex];
+#if ANIMATION_SUPPORTED
             var animationIndices = evjNode.AnimationIndices;
             for (int i = 0; i < animationIndices.Length; i++)
             {
@@ -67,6 +75,7 @@ namespace Envjoy.GLTF
                 if (!TrySetCreatedAnimationClip(clip))
                     throw new Exception("Failed to set created animation clip");
             }
+#endif
         }
 
         /// <summary>
@@ -86,7 +95,8 @@ namespace Envjoy.GLTF
             if (Root.Animations == null)
                 return;
 
-            InitializeCreatedAnimationClips();
+            _currentAnimationIndex = 0;
+            CreatedAnimationClips = new AnimationClip[Root.Animations?.Count ?? 0];
             for (int i = 0; i < Root.Animations.Count; i++)
             {
                 var clip = await ConstructClip(modelNode.transform, i, cancellationToken);
@@ -96,6 +106,26 @@ namespace Envjoy.GLTF
             }
 
             modelNode.Clips = CreatedAnimationClips;
+
+#if ANIMATION_SUPPORTED
+            var animations = CreatedObject.AddComponent<InstantiatedGLTFAnimations>();
+            animations.CacheData = new(Root.Animations, AnimationCache);
+#endif
+        }
+
+        /// <summary>
+        /// Try to set the created animation clip in the array
+        /// </summary>
+        /// <param name="clip">Clip to set</param>
+        /// <returns>Returns true if the clip was set, otherwise false</returns>
+        private bool TrySetCreatedAnimationClip(AnimationClip clip)
+        {
+            var index = _currentAnimationIndex++;
+            if (index < 0 || index >= CreatedAnimationClips.Length)
+                return false;
+
+            CreatedAnimationClips[index] = clip;
+            return true;
         }
     }
 }

@@ -23,6 +23,10 @@ namespace Envjoy.GLTF
 #endif
         private PlayableGraph _playableGraph;
 
+        private Vector3 _position;
+        private Quaternion _rotation;
+        private bool _paused;
+
         #endregion
 
         /// <summary>
@@ -31,36 +35,39 @@ namespace Envjoy.GLTF
         [ContextMenu("Play")]
         public void Play()
         {
+            _position = transform.position;
+            _rotation = transform.rotation;
+
+            _playableGraph = PlayableGraph.Create();
+
             var playableOutput = AnimationPlayableOutput.Create(_playableGraph, "Animation", GetComponent<Animator>());
             var mixerPlayable = AnimationMixerPlayable.Create(_playableGraph, 2);
+            mixerPlayable.SetInputWeight(0, 0.5f);
+            mixerPlayable.SetInputWeight(1, 0.5f);
+
             playableOutput.SetSourcePlayable(mixerPlayable);
 
-            var idlePlayable = AnimationClipPlayable.Create(_playableGraph, Path.IdleAnimation);
-            _playableGraph.Connect(idlePlayable, 0, mixerPlayable, 0);
+            if (Path.IdleAnimation != null)
+            {
+                var idlePlayable = ScriptPlayable<LoopAnimationClipPlayable>.Create(_playableGraph);
+                var idleBehaviour = idlePlayable.GetBehaviour();
+                idleBehaviour.Initialize(Path.IdleAnimation, idlePlayable, _playableGraph);
 
-            mixerPlayable.SetInputWeight(0, 1);
+                _playableGraph.Connect(idlePlayable, 0, mixerPlayable, 0);
+            }
 
             var hasWaypoints = Path.Waypoints.Length > 1;
             if (hasWaypoints)
             {
-                var waypointClip = Path.Waypoints[0].Animation;
-                var waypointPlayable = AnimationClipPlayable.Create(_playableGraph, waypointClip);
+                var clips = Path.Waypoints.Select(w => w.Animation).ToArray();
+                var waypointPlayable = ScriptPlayable<QueueAnimationClipPlayable>.Create(_playableGraph);
+                var waypointBehaviour = waypointPlayable.GetBehaviour();
+                waypointBehaviour.Initialize(clips, waypointPlayable, _playableGraph);
+
                 _playableGraph.Connect(waypointPlayable, 0, mixerPlayable, 1);
-
-                void OnWaypointChange(int value)
-                {
-                    var clip = Path.Waypoints[value].Animation;
-                    if (clip == null)
-                        return;
-
-                    mixerPlayable.SetInputWeight(0, 0.5f);
-                    mixerPlayable.SetInputWeight(1, 0.5f);
-                    waypointPlayable.SetAnimatedProperties(clip);
-                    waypointPlayable.SetTime(0);
-                }
 #if DOTWEEN
                 _tween = CreateTween()
-                        .OnWaypointChange(OnWaypointChange)
+                        .OnWaypointChange(waypointBehaviour.SetIndex)
                         .Play();
 #endif
             }
@@ -74,10 +81,42 @@ namespace Envjoy.GLTF
         [ContextMenu("Stop")]
         public void Stop()
         {
+            _paused = false;
+#if DOTWEEN
             _tween?.Kill();
+#endif
 
             if (_playableGraph.IsValid())
-                _playableGraph.Stop();
+                _playableGraph.Destroy();
+
+            transform.SetPositionAndRotation(_position, _rotation);
+        }
+
+        /// <summary>
+        /// The Pause
+        /// </summary>
+        [ContextMenu("Pause")]
+        public void Pause()
+        {
+            _paused = !_paused;
+            if (_paused)
+            {
+#if DOTWEEN
+                _tween?.Pause();
+#endif
+
+                if (_playableGraph.IsValid())
+                    _playableGraph.GetRootPlayable(0).Pause();
+            }
+            else
+            {
+#if DOTWEEN
+                _tween?.Play();
+#endif
+
+                if (_playableGraph.IsValid())
+                    _playableGraph.GetRootPlayable(0).Play();
+            }
         }
 
         /// <summary>
@@ -85,12 +124,10 @@ namespace Envjoy.GLTF
         /// </summary>
         private void Awake()
         {
-            _playableGraph = PlayableGraph.Create();
-            _playableGraph.SetTimeUpdateMode(DirectorUpdateMode.GameTime);
-
             Clips ??= new AnimationClip[0];
             Path ??= new Path
             {
+                Duration = 1,
                 Waypoints = new Waypoint[1]
                 {
                     new Waypoint
@@ -129,9 +166,10 @@ namespace Envjoy.GLTF
                                      .ToArray();
 
             return transform.DOPath(path, Path.Duration, pathType, PathMode.Full3D, gizmoColor: Color.yellow)
+                            .SetEase(Ease.Linear)
                             .SetLoops(-1)
-                            .SetOptions(closePath: true)
-                            .SetLookAt(1);
+                            .SetOptions(closePath: Path.ClosePath)
+                            .SetLookAt(0.1f, false);
         }
 #endif
     }
