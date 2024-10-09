@@ -134,7 +134,11 @@ namespace Envjoy.GLTF
                     return;
 
                 if (_context.SceneImporter.CreatedObject.TryGetComponent(out SceneNode sceneNode))
+                {
                     sceneNode.ImageTarget = textureObject;
+                    sceneNode.Width = _extension.ImageTarget.Width;
+                    sceneNode.Orientation = _extension.ImageTarget.Orientation;
+                }
             }
 
             /// <inheritdoc/>
