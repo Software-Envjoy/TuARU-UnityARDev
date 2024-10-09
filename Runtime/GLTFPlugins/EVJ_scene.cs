@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Envjoy.GLTF
@@ -75,6 +76,11 @@ namespace Envjoy.GLTF
         /// </summary>
         public EVJ_path Path { get; set; }
 
+        /// <summary>
+        /// Gets or sets the Hotspots
+        /// </summary>
+        public EVJ_hotspot[] Hotspots { get; set; }
+
         #endregion
     }
 
@@ -132,6 +138,43 @@ namespace Envjoy.GLTF
         /// Gets or sets the AnimationIndex
         /// </summary>
         public int AnimationIndex { get; set; }
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Defines the <see cref="EVJ_hotspot" />
+    /// </summary>
+    [Serializable]
+    public class EVJ_hotspot
+    {
+        #region Properties
+
+        /// <summary>
+        /// Gets or sets the Id
+        /// </summary>
+        public int Id { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Radius
+        /// </summary>
+        public float Radius { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Position
+        /// </summary>
+        [JsonConverter(typeof(Vector3Converter))]
+        public Vector3 Position { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Title
+        /// </summary>
+        public Dictionary<string, string> Title { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Description
+        /// </summary>
+        public Dictionary<string, string> Description { get; set; }
 
         #endregion
     }
