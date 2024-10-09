@@ -123,6 +123,7 @@ namespace Envjoy.GLTF
                 if (sceneNode.ImageTarget != null)
                 {
                     var textureId = exporter.ExportTexture(sceneNode.ImageTarget, default);
+
                     _extension.ImageTarget = new EVJ_target
                     {
                         Width = sceneNode.Width,
