@@ -71,9 +71,23 @@ namespace Envjoy.GLTF
                         {
                             ClosePath = modelNode.Path.ClosePath,
                             ConvertCurves = modelNode.Path.ConvertCurves,
-                            Duration = modelNode.Path.Duration,
-                        }
+                            Duration = modelNode.Path.Duration
+                        },
+                        Hotspots = new EVJ_hotspot[modelNode.Hotspots.Length]
                     };
+
+                    for (int j = 0; j < modelNode.Hotspots.Length; j++)
+                    {
+                        var hotspot = modelNode.Hotspots[j];
+                        node.Hotspots[j] = new EVJ_hotspot
+                        {
+                            Id = hotspot.Id,
+                            Position = hotspot.Position,
+                            Radius = hotspot.Radius,
+                            Title = hotspot.Title,
+                            Description = hotspot.Description
+                        };
+                    }
 
 #if ANIMATION_SUPPORTED
                     exporter.ExportAnimationClips(modelNode.transform, modelNode.Clips);

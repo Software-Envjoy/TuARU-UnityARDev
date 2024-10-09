@@ -105,6 +105,20 @@ namespace Envjoy.GLTF
                         modelNode.Path.Waypoints[i].Animation = _context.SceneImporter.AnimationCache
                             .ElementAtOrDefault(waypoint.AnimationIndex)?.LoadedAnimationClip;
                 }
+
+                modelNode.Hotspots = new Hotspot[evjNode.Hotspots.Length];
+                for (int i = 0; i < evjNode.Hotspots.Length; i++)
+                {
+                    var hotspot = evjNode.Hotspots[i];
+                    modelNode.Hotspots[i] = new Hotspot
+                    {
+                        Id = hotspot.Id,
+                        Position = hotspot.Position,
+                        Radius = hotspot.Radius,
+                        Title = hotspot.Title,
+                        Description = hotspot.Description
+                    };
+                }
             }
 
             /// <inheritdoc/>

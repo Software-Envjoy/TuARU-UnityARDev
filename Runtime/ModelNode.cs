@@ -18,6 +18,8 @@ namespace Envjoy.GLTF
 
         public AnimationClip[] Clips;
         public Path Path;
+        public Hotspot[] Hotspots;
+
 #if DOTWEEN
         private Tween _tween;
 #endif
@@ -136,6 +138,7 @@ namespace Envjoy.GLTF
                     }
                 }
             };
+            Hotspots ??= new Hotspot[0];
         }
 
         /// <summary>
@@ -165,7 +168,7 @@ namespace Envjoy.GLTF
             var path = Path.Waypoints.Select(w => w.Position)
                                      .ToArray();
 
-            return transform.DOPath(path, Path.Duration, pathType, PathMode.Full3D, gizmoColor: Color.yellow)
+            return transform.DOLocalPath(path, Path.Duration, pathType, PathMode.Full3D, gizmoColor: Color.yellow)
                             .SetEase(Ease.Linear)
                             .SetLoops(-1)
                             .SetOptions(closePath: Path.ClosePath)
